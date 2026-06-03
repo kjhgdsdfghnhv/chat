@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Chat, ChatDocument } from './chat.schema';
@@ -37,10 +37,26 @@ export class ChatsService {
     });
   }
 
-  async getChatMessages(chatId: string, userId: string) {
+  async getChatMessages(chatId: string, userId: string, page: number = 1, limit: number = 50) {
     const chat = await this.chatModel.findById(chatId);
     if (!chat || !chat.members.includes(userId)) throw new ForbiddenException();
-    return this.messageModel.find({ chatId }).sort({ createdAt: 1 });
+    const skip = (page - 1) * limit;
+    const total = await this.messageModel.countDocuments({ chatId });
+    const messages = await this.messageModel
+      .find({ chatId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .exec();
+    return {
+      messages: messages.reverse(),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async deleteMessage(messageId: string, userId: string) {
@@ -71,5 +87,15 @@ export class ChatsService {
     await this.messageModel.deleteMany({ chatId });
     await this.chatModel.findByIdAndDelete(chatId);
     return { success: true };
+  }
+
+  // Метод для оновлення назви групи
+  async updateGroupName(chatId: string, userId: string, newName: string) {
+    const chat = await this.chatModel.findById(chatId);
+    if (!chat) throw new NotFoundException('Chat not found');
+    if (chat.type !== 'group') throw new BadRequestException('Not a group chat');
+    if (!chat.members.includes(userId)) throw new ForbiddenException('Not a member');
+    
+    return this.chatModel.findByIdAndUpdate(chatId, { name: newName }, { new: true });
   }
 }

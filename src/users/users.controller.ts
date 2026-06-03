@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Query, Request, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Query, Request, UseGuards, UseInterceptors, UploadedFile, BadRequestException, Logger } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -6,6 +6,8 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
+  private logger = new Logger('UsersController');
+  
   constructor(private usersService: UsersService) {}
 
   @Get('search')
@@ -30,9 +32,21 @@ export class UsersController {
 
   @Post('avatar')
   @UseInterceptors(FileInterceptor('avatar'))
-  uploadAvatar(@UploadedFile() file: Express.Multer.File, @Request() req) {
+  async uploadAvatar(@UploadedFile() file: Express.Multer.File, @Request() req) {
+    if (!file) {
+      this.logger.error('❌ No file received');
+      throw new BadRequestException('No file uploaded');
+    }
+    
+    this.logger.log(`✓ File received: ${file.originalname}`);
+    this.logger.log(`✓ File path: ${file.path}`);
+    this.logger.log(`✓ File size: ${file.size} bytes`);
+    
     const avatarUrl = `/uploads/avatars/${file.filename}`;
-    return this.usersService.updateAvatar(req.user._id.toString(), avatarUrl);
+    this.logger.log(`✓ Avatar URL: ${avatarUrl}`);
+    
+    const result = await this.usersService.updateAvatar(req.user._id.toString(), avatarUrl);
+    return result;
   }
 
   @Get(':id')
