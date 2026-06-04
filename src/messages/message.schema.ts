@@ -11,7 +11,8 @@ export class Message {
   @Prop({ required: true })
   senderId: string;
 
-  @Prop({ required: true })
+  // Робимо text необов'язковим – дозволяємо порожній рядок
+  @Prop({ required: false, default: '' })
   text: string;
 
   @Prop({ default: false })
@@ -20,7 +21,6 @@ export class Message {
   @Prop({ default: false })
   isRead: boolean;
 
-  // NEW fields for files/images
   @Prop()
   fileUrl?: string;
 

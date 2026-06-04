@@ -69,11 +69,8 @@ async handleMessage(@MessageBody() data: { chatId: string; text?: string; fileUr
       return { error: 'Not a member of this chat' };
     }
     
-    // Якщо є файл – текст робимо порожнім (щоб не показувати назву файлу)
-    let messageText = data.text || '';
-    if (data.fileUrl) {
-      messageText = '';   // тільки картинка/файл, без тексту
-    }
+    // Якщо є файл, але немає тексту – дозволяємо пустий текст
+    const messageText = data.text || '';   // може бути порожнім
     
     const message = await this.messageModel.create({
       chatId: data.chatId,
@@ -84,8 +81,15 @@ async handleMessage(@MessageBody() data: { chatId: string; text?: string; fileUr
       fileName: data.fileName,
     });
 
-    // Оновлюємо lastMessage в чаті
-    const lastMessageText = messageText || (data.fileUrl ? (data.fileType?.startsWith('image/') ? '📷 Зображення' : '📎 Файл') : '');
+    // Визначаємо текст для lastMessage: якщо є файл, то піктограма, інакше текст
+    let lastMessageText = messageText;
+    if (data.fileUrl) {
+      if (data.fileType?.startsWith('image/')) lastMessageText = '📷 Зображення';
+      else if (data.fileType?.startsWith('video/')) lastMessageText = '🎥 Відео';
+      else lastMessageText = '📎 Файл';
+    }
+    if (!lastMessageText) lastMessageText = 'Повідомлення';
+    
     await this.chatModel.findByIdAndUpdate(data.chatId, {
       lastMessage: { text: lastMessageText, senderId: userId, createdAt: new Date() },
     });
@@ -99,7 +103,6 @@ async handleMessage(@MessageBody() data: { chatId: string; text?: string; fileUr
     return { error: 'Failed to send message' };
   }
 }
-
   @SubscribeMessage('message:delete')
   async handleDeleteMessage(@MessageBody() data: { messageId: string; chatId: string }, @ConnectedSocket() client: Socket) {
     try {
