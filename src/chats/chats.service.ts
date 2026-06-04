@@ -60,17 +60,17 @@ export class ChatsService {
   }
 
   async deleteMessage(messageId: string, userId: string) {
-    const msg = await this.messageModel.findById(messageId);
-    if (!msg) throw new ForbiddenException('Message not found');
-    if (msg.senderId !== userId) throw new ForbiddenException('Not your message');
-    msg.isDeleted = true;
-    msg.text = 'Повідомлення видалено';
-    msg.fileUrl = null;      // очищаємо URL файлу
-    msg.fileType = null;
-    msg.fileName = null;
-    await msg.save();
-    return msg;
-  }
+  const msg = await this.messageModel.findById(messageId);
+  if (!msg) throw new ForbiddenException('Message not found');
+  if (msg.senderId !== userId) throw new ForbiddenException('Not your message');
+  msg.isDeleted = true;
+  msg.text = 'Повідомлення видалено';
+  msg.fileUrl = null;
+  msg.fileType = null;
+  msg.fileName = null;
+  await msg.save();
+  return msg;
+}
 
   async addMembersToGroup(chatId: string, adminId: string, newMemberIds: string[]) {
     const chat = await this.chatModel.findById(chatId);
