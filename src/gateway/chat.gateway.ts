@@ -61,44 +61,44 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('message:send')
-  async handleMessage(@MessageBody() data: { chatId: string; text?: string; fileUrl?: string; fileType?: string; fileName?: string }, @ConnectedSocket() client: Socket) {
-    try {
-      const userId = client.data.userId;
-      const chat = await this.chatModel.findById(data.chatId);
-      if (!chat || !chat.members.includes(userId)) {
-        return { error: 'Not a member of this chat' };
-      }
-      
-      let messageText = data.text || '';
-      if (data.fileUrl) {
-        if (data.fileType?.startsWith('image/')) messageText = `📷 ${data.fileName || 'Зображення'}`;
-        else if (data.fileType?.startsWith('video/')) messageText = `🎥 ${data.fileName || 'Відео'}`;
-        else messageText = `📎 ${data.fileName || 'Файл'}`;
-      }
-      
-      const message = await this.messageModel.create({
-        chatId: data.chatId,
-        senderId: userId,
-        text: messageText,
-        fileUrl: data.fileUrl,
-        fileType: data.fileType,
-        fileName: data.fileName,
-      });
-
-      await this.chatModel.findByIdAndUpdate(data.chatId, {
-        lastMessage: { text: messageText, senderId: userId, createdAt: new Date() },
-      });
-
-      const messageData = message.toObject();
-      this.server.to(data.chatId).emit('message:new', messageData);
-      
-      this.logger.debug(`Message sent to chat ${data.chatId}`);
-      return messageData;
-    } catch (error) {
-      this.logger.error('Error sending message:', error);
-      return { error: 'Failed to send message' };
+async handleMessage(@MessageBody() data: { chatId: string; text?: string; fileUrl?: string; fileType?: string; fileName?: string }, @ConnectedSocket() client: Socket) {
+  try {
+    const userId = client.data.userId;
+    const chat = await this.chatModel.findById(data.chatId);
+    if (!chat || !chat.members.includes(userId)) {
+      return { error: 'Not a member of this chat' };
     }
+    
+    // Якщо є файл – текст робимо порожнім (щоб не показувати назву файлу)
+    let messageText = data.text || '';
+    if (data.fileUrl) {
+      messageText = '';   // тільки картинка/файл, без тексту
+    }
+    
+    const message = await this.messageModel.create({
+      chatId: data.chatId,
+      senderId: userId,
+      text: messageText,
+      fileUrl: data.fileUrl,
+      fileType: data.fileType,
+      fileName: data.fileName,
+    });
+
+    // Оновлюємо lastMessage в чаті
+    const lastMessageText = messageText || (data.fileUrl ? (data.fileType?.startsWith('image/') ? '📷 Зображення' : '📎 Файл') : '');
+    await this.chatModel.findByIdAndUpdate(data.chatId, {
+      lastMessage: { text: lastMessageText, senderId: userId, createdAt: new Date() },
+    });
+
+    const messageData = message.toObject();
+    this.server.to(data.chatId).emit('message:new', messageData);
+    
+    return messageData;
+  } catch (error) {
+    this.logger.error('Error sending message:', error);
+    return { error: 'Failed to send message' };
   }
+}
 
   @SubscribeMessage('message:delete')
   async handleDeleteMessage(@MessageBody() data: { messageId: string; chatId: string }, @ConnectedSocket() client: Socket) {

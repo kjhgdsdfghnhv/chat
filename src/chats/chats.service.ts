@@ -65,6 +65,9 @@ export class ChatsService {
     if (msg.senderId !== userId) throw new ForbiddenException('Not your message');
     msg.isDeleted = true;
     msg.text = 'Повідомлення видалено';
+    msg.fileUrl = null;      // очищаємо URL файлу
+    msg.fileType = null;
+    msg.fileName = null;
     await msg.save();
     return msg;
   }
@@ -89,16 +92,15 @@ export class ChatsService {
     return { success: true };
   }
 
-  // NEW: update group name
+  // Дозволяємо змінювати назву групи БУДЬ-ЯКОМУ учаснику
   async updateGroupName(chatId: string, userId: string, newName: string) {
     const chat = await this.chatModel.findById(chatId);
     if (!chat) throw new NotFoundException('Chat not found');
     if (chat.type !== 'group') throw new ForbiddenException('Not a group chat');
-    if (chat.adminId !== userId) throw new ForbiddenException('Only admin can change name');
+    if (!chat.members.includes(userId)) throw new ForbiddenException('Not a member');
     return this.chatModel.findByIdAndUpdate(chatId, { name: newName }, { new: true });
   }
 
-  // NEW: remove member from group
   async removeMemberFromGroup(chatId: string, adminId: string, memberIdToRemove: string) {
     const chat = await this.chatModel.findById(chatId);
     if (!chat) throw new NotFoundException('Chat not found');
@@ -113,7 +115,6 @@ export class ChatsService {
     return updated;
   }
 
-  // NEW: leave group (for non-admin members)
   async leaveGroup(chatId: string, userId: string) {
     const chat = await this.chatModel.findById(chatId);
     if (!chat || !chat.members.includes(userId)) throw new ForbiddenException('Not a member');

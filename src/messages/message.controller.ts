@@ -33,18 +33,13 @@ export class MessageController {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    const fileType = file.mimetype.split('/')[0];
-    let messageText = '';
-    if (fileType === 'image') messageText = `📷 Зображення: ${file.originalname}`;
-    else if (fileType === 'video') messageText = `🎥 Відео: ${file.originalname}`;
-    else messageText = `📎 Файл: ${file.originalname}`;
-
+    // Не повертаємо messageText – фронтенд буде надсилати порожній текст
     return {
       messageUrl: `/uploads/messages/${file.filename}`,
       fileName: file.originalname,
       fileSize: file.size,
       fileType: file.mimetype,
-      messageText: messageText
+      messageText: ''   // ← порожній текст, щоб не показувати назву
     };
   }
 }
