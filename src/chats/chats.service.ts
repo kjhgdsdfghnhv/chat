@@ -59,10 +59,15 @@ export class ChatsService {
     };
   }
 
-  async deleteMessage(messageId: string, userId: string) {
+async deleteMessage(messageId: string, userId: string) {
   const msg = await this.messageModel.findById(messageId);
   if (!msg) throw new ForbiddenException('Message not found');
-  if (msg.senderId !== userId) throw new ForbiddenException('Not your message');
+  const chat = await this.chatModel.findById(msg.chatId);
+  if (!chat) throw new ForbiddenException('Chat not found');
+  const isAdmin = chat.type === 'group' && chat.adminId === userId;
+  const isAuthor = msg.senderId === userId;
+  if (!isAdmin && !isAuthor) throw new ForbiddenException('Not allowed to delete this message');
+  
   msg.isDeleted = true;
   msg.text = 'Повідомлення видалено';
   msg.fileUrl = null;
