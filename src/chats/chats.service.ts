@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Chat, ChatDocument } from './chat.schema';
@@ -87,15 +87,5 @@ export class ChatsService {
     await this.messageModel.deleteMany({ chatId });
     await this.chatModel.findByIdAndDelete(chatId);
     return { success: true };
-  }
-
-  // Метод для оновлення назви групи
-  async updateGroupName(chatId: string, userId: string, newName: string) {
-    const chat = await this.chatModel.findById(chatId);
-    if (!chat) throw new NotFoundException('Chat not found');
-    if (chat.type !== 'group') throw new BadRequestException('Not a group chat');
-    if (!chat.members.includes(userId)) throw new ForbiddenException('Not a member');
-    
-    return this.chatModel.findByIdAndUpdate(chatId, { name: newName }, { new: true });
   }
 }

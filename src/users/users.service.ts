@@ -2,10 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from './user.schema';
+import { Chat, ChatDocument } from '../chats/chat.schema';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Chat.name) private chatModel: Model<ChatDocument>,
+  ) {}
 
   async findById(id: string) {
     return this.userModel.findById(id).select('-password');
@@ -47,5 +51,13 @@ export class UsersService {
       isOnline,
       lastSeen: isOnline ? undefined : new Date(),
     });
+  }
+
+  async updateUsername(userId: string, username: string) {
+    return this.userModel.findByIdAndUpdate(userId, { username }, { new: true }).select('-password');
+  }
+
+  async getUserChats(userId: string) {
+    return this.chatModel.find({ members: userId }).select('_id members');
   }
 }

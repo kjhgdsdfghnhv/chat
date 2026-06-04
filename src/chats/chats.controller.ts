@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Patch, Param, Body, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Request, UseGuards } from '@nestjs/common';
 import { ChatsService } from './chats.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -35,11 +35,6 @@ export class ChatsController {
   @Post(':chatId/members')
   addMembers(@Param('chatId') chatId: string, @Body() body: { memberIds: string[] }, @Request() req) {
     return this.chatsService.addMembersToGroup(chatId, req.user._id.toString(), body.memberIds);
-  }
-
-  @Patch(':chatId/name')
-  updateGroupName(@Param('chatId') chatId: string, @Body() body: { name: string }, @Request() req) {
-    return this.chatsService.updateGroupName(chatId, req.user._id.toString(), body.name);
   }
 
   @Delete(':chatId')
