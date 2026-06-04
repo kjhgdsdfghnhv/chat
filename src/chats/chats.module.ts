@@ -1,36 +1,21 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { MulterModule } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
-import { User, UserSchema } from './user.schema';
-import { Chat, ChatSchema } from '../chats/chat.schema';
-import { GatewayModule } from '../gateway/gateway.module';
+import { ChatsController } from './chats.controller';
+import { ChatsService } from './chats.service';
+import { Chat, ChatSchema } from './chat.schema';
+import { Message, MessageSchema } from '../messages/message.schema';
+import { User, UserSchema } from '../users/user.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: User.name, schema: UserSchema },
       { name: Chat.name, schema: ChatSchema },
+      { name: Message.name, schema: MessageSchema },
+      { name: User.name, schema: UserSchema },
     ]),
-    MulterModule.register({
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          const uploadDir = join(process.cwd(), 'uploads', 'avatars');
-          cb(null, uploadDir);
-        },
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, `avatar-${uniqueSuffix}${extname(file.originalname)}`);
-        },
-      }),
-    }),
-    forwardRef(() => GatewayModule), // ← ось головне виправлення
   ],
-  controllers: [UsersController],
-  providers: [UsersService],
-  exports: [UsersService, MongooseModule],
+  controllers: [ChatsController],
+  providers: [ChatsService],
+  exports: [ChatsService, MongooseModule],
 })
-export class UsersModule {}
+export class ChatsModule {}

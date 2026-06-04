@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
@@ -7,6 +7,7 @@ import { Chat, ChatSchema } from '../chats/chat.schema';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
+import { GatewayModule } from '../gateway/gateway.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { extname, join } from 'path';
         },
       }),
     }),
+    forwardRef(() => GatewayModule),
   ],
   controllers: [UsersController],
   providers: [UsersService],

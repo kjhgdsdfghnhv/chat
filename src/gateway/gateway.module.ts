@@ -11,6 +11,6 @@ import { UsersModule } from '../users/users.module';
     forwardRef(() => UsersModule),
   ],
   providers: [ChatGateway],
-  exports: [ChatGateway], // важливо: експортуємо, щоб UsersModule міг його використати
+  exports: [ChatGateway],
 })
 export class GatewayModule {}
