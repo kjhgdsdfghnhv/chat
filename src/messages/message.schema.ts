@@ -19,6 +19,16 @@ export class Message {
 
   @Prop({ default: false })
   isRead: boolean;
+
+  // NEW fields for files/images
+  @Prop()
+  fileUrl?: string;
+
+  @Prop()
+  fileType?: string;
+
+  @Prop()
+  fileName?: string;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);

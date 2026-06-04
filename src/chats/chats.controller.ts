@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Request, UseGuards, Patch } from '@nestjs/common';
 import { ChatsService } from './chats.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -40,5 +40,23 @@ export class ChatsController {
   @Delete(':chatId')
   deleteChat(@Param('chatId') chatId: string, @Request() req) {
     return this.chatsService.deleteChat(chatId, req.user._id.toString());
+  }
+
+  // NEW: update group name
+  @Patch(':chatId/name')
+  updateGroupName(@Param('chatId') chatId: string, @Body('name') name: string, @Request() req) {
+    return this.chatsService.updateGroupName(chatId, req.user._id.toString(), name);
+  }
+
+  // NEW: remove member from group
+  @Delete(':chatId/members/:memberId')
+  removeMember(@Param('chatId') chatId: string, @Param('memberId') memberId: string, @Request() req) {
+    return this.chatsService.removeMemberFromGroup(chatId, req.user._id.toString(), memberId);
+  }
+
+  // NEW: leave group (for regular members)
+  @Post(':chatId/leave')
+  leaveGroup(@Param('chatId') chatId: string, @Request() req) {
+    return this.chatsService.leaveGroup(chatId, req.user._id.toString());
   }
 }

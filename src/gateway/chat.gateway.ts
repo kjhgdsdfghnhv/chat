@@ -61,7 +61,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('message:send')
-  async handleMessage(@MessageBody() data: { chatId: string; text: string }, @ConnectedSocket() client: Socket) {
+  async handleMessage(@MessageBody() data: { chatId: string; text?: string; fileUrl?: string; fileType?: string; fileName?: string }, @ConnectedSocket() client: Socket) {
     try {
       const userId = client.data.userId;
       const chat = await this.chatModel.findById(data.chatId);
@@ -69,17 +69,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return { error: 'Not a member of this chat' };
       }
       
+      let messageText = data.text || '';
+      if (data.fileUrl) {
+        if (data.fileType?.startsWith('image/')) messageText = `📷 ${data.fileName || 'Зображення'}`;
+        else if (data.fileType?.startsWith('video/')) messageText = `🎥 ${data.fileName || 'Відео'}`;
+        else messageText = `📎 ${data.fileName || 'Файл'}`;
+      }
+      
       const message = await this.messageModel.create({
         chatId: data.chatId,
         senderId: userId,
-        text: data.text,
+        text: messageText,
+        fileUrl: data.fileUrl,
+        fileType: data.fileType,
+        fileName: data.fileName,
       });
 
       await this.chatModel.findByIdAndUpdate(data.chatId, {
-        lastMessage: { text: data.text, senderId: userId, createdAt: new Date() },
+        lastMessage: { text: messageText, senderId: userId, createdAt: new Date() },
       });
 
-      // Broadcast to all members including the sender
       const messageData = message.toObject();
       this.server.to(data.chatId).emit('message:new', messageData);
       
@@ -161,14 +170,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleNewChat(@MessageBody() data: { chat: any }, @ConnectedSocket() client: Socket) {
     try {
       const chat = data.chat;
-      // Join all members to this chat room
       for (const memberId of chat.members) {
         const socketId = this.userSockets.get(memberId);
         if (socketId) {
           this.server.sockets.sockets.get(socketId)?.join(chat._id.toString());
         }
       }
-      // Broadcast new chat to all members
       this.server.to(chat._id.toString()).emit('chat:created', chat);
       this.logger.debug(`Chat created: ${chat._id}`);
     } catch (error) {

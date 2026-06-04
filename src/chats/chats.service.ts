@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Chat, ChatDocument } from './chat.schema';
@@ -86,6 +86,39 @@ export class ChatsService {
     
     await this.messageModel.deleteMany({ chatId });
     await this.chatModel.findByIdAndDelete(chatId);
+    return { success: true };
+  }
+
+  // NEW: update group name
+  async updateGroupName(chatId: string, userId: string, newName: string) {
+    const chat = await this.chatModel.findById(chatId);
+    if (!chat) throw new NotFoundException('Chat not found');
+    if (chat.type !== 'group') throw new ForbiddenException('Not a group chat');
+    if (chat.adminId !== userId) throw new ForbiddenException('Only admin can change name');
+    return this.chatModel.findByIdAndUpdate(chatId, { name: newName }, { new: true });
+  }
+
+  // NEW: remove member from group
+  async removeMemberFromGroup(chatId: string, adminId: string, memberIdToRemove: string) {
+    const chat = await this.chatModel.findById(chatId);
+    if (!chat) throw new NotFoundException('Chat not found');
+    if (chat.type !== 'group') throw new ForbiddenException('Not a group');
+    if (chat.adminId !== adminId) throw new ForbiddenException('Only admin can remove members');
+    if (adminId === memberIdToRemove) throw new ForbiddenException('Admin cannot remove themselves');
+    const updated = await this.chatModel.findByIdAndUpdate(
+      chatId,
+      { $pull: { members: memberIdToRemove } },
+      { new: true }
+    );
+    return updated;
+  }
+
+  // NEW: leave group (for non-admin members)
+  async leaveGroup(chatId: string, userId: string) {
+    const chat = await this.chatModel.findById(chatId);
+    if (!chat || !chat.members.includes(userId)) throw new ForbiddenException('Not a member');
+    if (chat.adminId === userId) throw new ForbiddenException('Admin cannot leave, must delete group or transfer ownership');
+    await this.chatModel.findByIdAndUpdate(chatId, { $pull: { members: userId } });
     return { success: true };
   }
 }
